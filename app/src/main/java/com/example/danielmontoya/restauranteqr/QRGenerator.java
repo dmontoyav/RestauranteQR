@@ -1,5 +1,6 @@
 package com.example.danielmontoya.restauranteqr;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -25,11 +26,11 @@ import java.io.OutputStream;
 public class QRGenerator {
     String url;
     Bitmap bitmap;
-    MainActivity mainActivity;
+    Context mainActivity;
     private File codeFile;
     private String nameFile;
 
-    public QRGenerator(String pnameFile , String purl, MainActivity pmainActivity)
+    public QRGenerator(String pnameFile , String purl, Context pmainActivity)
     {
         url = purl;
         mainActivity = pmainActivity;

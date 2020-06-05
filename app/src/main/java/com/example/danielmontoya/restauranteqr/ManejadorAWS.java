@@ -1,13 +1,17 @@
 package com.example.danielmontoya.restauranteqr;
 
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
+import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -32,9 +36,10 @@ public class ManejadorAWS extends AppCompatActivity {
     private String Key;
     private File file;
     private String url;
-    private MainActivity mainActivity;
+    private Main2Activity mainActivity;
+    private boolean creado;
 
-    public ManejadorAWS(MainActivity pmainActivity)
+    public ManejadorAWS(Main2Activity pmainActivity)
     {
         mainActivity = pmainActivity;
         credentialProvider();
@@ -69,13 +74,13 @@ public class ManejadorAWS extends AppCompatActivity {
     /**
      * This method is used to upload the file to S3 by using TransferUtility class
      */
-    public void setFileToUpload(Uri uri){
-        System.out.println(uri);
+    public boolean setFileToUpload(Uri uri){
+        creado = false;
         String filepath = getRealPathFromURI(uri);
-        //filepath = filepath + getFileExtension(uri);
-        System.out.println(filepath);
+        url = null;
         createFile(filepath);
         Key = file.getName();
+        Key = Key.replaceAll(" ","");
         TransferObserver transferObserver = transferUtility.upload(
                 NOMBRE_BUCKET, // The bucket to upload to
                 Key,  // The key for the uploaded object
@@ -84,6 +89,7 @@ public class ManejadorAWS extends AppCompatActivity {
 
         transferObserverListener(transferObserver);
         url = s3.getUrl(NOMBRE_BUCKET,Key).toExternalForm();
+        return creado;
     }
 
     private void transferObserverListener(TransferObserver transferObserver){
@@ -92,7 +98,20 @@ public class ManejadorAWS extends AppCompatActivity {
 
             @Override
             public void onStateChanged(int id, TransferState state) {
-                Log.e("statechange: ", state + "");
+                if(state.equals(TransferState.COMPLETED))
+                {
+                    creado = true;
+                    crearQR();
+                    mainActivity.setResult(Constantes.QRGENERATED);
+                    mainActivity.finish();
+                }
+                else
+                {
+                    Toast.makeText(mainActivity.getApplicationContext(),"Se está generando el QR",Toast.LENGTH_SHORT).show();
+                }
+                Log.e("statechange: ", state + "url: "+ url);
+
+
             }
 
             @Override
@@ -141,5 +160,12 @@ public class ManejadorAWS extends AppCompatActivity {
     public String getfileName()
     {
         return Key;
+    }
+
+    public void crearQR()
+    {
+        QRGenerator qr = new QRGenerator(Key,getUrl(),mainActivity.getApplicationContext());
+        Bitmap bp = qr.generadorQR();
+        mainActivity.setImageView(bp);
     }
 }
